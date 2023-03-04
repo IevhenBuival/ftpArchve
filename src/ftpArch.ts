@@ -2,7 +2,7 @@ import "dotenv/config";
 import Client from 'ftp-ts';
 import fs from 'fs';
 import { cleanEnv, port, str } from "envalid";
-import {program} from 'commander';
+import { program } from 'commander';
 
 const env = cleanEnv(process.env, {
   HOST: str(),
@@ -19,8 +19,6 @@ const ConnectToFtp = async (host: string, user: string, password: string, port: 
     console.error(error);
   }
 }
-
-
 
 const GetListFtpFiles = async (ftp: Promise<Client | undefined>): Promise<string[] | undefined> => {
   try {
@@ -51,23 +49,23 @@ const GetListFtpFiles = async (ftp: Promise<Client | undefined>): Promise<string
 }
 
 const getFileList = async (): Promise<string[]> => {
-    const list = ( fs.readdirSync(env.BAKPATH)).filter(file => {
-     if (file.match(/\.bak/i))
-        return file;
-    });
+  const list = (fs.readdirSync(env.BAKPATH)).filter(file => {
+    if (file.match(/\.bak/i))
+      return file;
+  });
   list.map(file => console.log(file));
   return list;
 }
 
 const putFilesOnFtp = async (ftp: Promise<Client | undefined>, existList: string[] | undefined) => {
-  const uploadList = await getFileList(); 
+  const uploadList = await getFileList();
   try {
     await Promise.all(uploadList.map(async l => {
       const ftpuse = async (l: string) => {
         await ftp.then(
           async (c) => {
             if (c) {
-              await c.put(env.BAKPATH+l, l);
+              await c.put(env.BAKPATH + l, l);
             }
           }
         )
@@ -85,23 +83,19 @@ const putFilesOnFtp = async (ftp: Promise<Client | undefined>, existList: string
 
 async function main() {
   const ftp = ConnectToFtp(env.HOST, env.FTPUSER, env.PASSWORD, env.PORT);
-
   const ftpList = await GetListFtpFiles(ftp);
-
   await putFilesOnFtp(ftp, ftpList);
-
-  
 }
-const command = async()=>{
+
+const command = async () => {
   console.log("start");
-     await main();
-    console.log("end");
-  
-}
+  await main();
+  console.log("end");
 
+}
 
 program
-.version('1.0.0')
-.action(command)
-.parse(process.argv);
+  .version('1.0.0')
+  .action(command)
+  .parse(process.argv);
 
