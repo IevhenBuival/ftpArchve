@@ -14,34 +14,30 @@ const env = cleanEnv(process.env, {
 
 const ConnectToFtp = async (host: string, user: string, password: string, port: number) => {
   try {
-    return Client.connect({ host: host, user: user, password: password, port: port });
+    return await Client.connect({ host: host, user: user, password: password, port: port });
   } catch (error) {
     console.error(error);
   }
 }
 
-const GetListFtpFiles = async (ftp: Promise<Client | undefined>): Promise<string[] | undefined> => {
+const GetListFtpFiles = async (ftp: Client): Promise<string[] | undefined> => {
   try {
     const today: Date = new Date();
     const resList: string[] = [];
-    await ftp.then(async (c) => {
-      if (c) {
-        const list = await c.list();
-        list.map((file) => {
-          if (typeof file !== "string") {
-            if (file.size !== -1) {
-              const dateDiff = (file?.date) ? (today.setHours(0, 0, 0, 0).valueOf() - file.date.setHours(0, 0, 0, 0).valueOf()) : 0;
-              if (dateDiff >= 7 * 24 * 60 * 60 * 1000) {
-                if (file.name.match(/\.bak/i)) c.delete(file.name);
-              }
-              else {
-                resList.push(file?.name);
-              }
-            }
+    const list = await ftp.list();
+    list.map((file) => {
+      if (typeof file !== "string") {
+        if (file.size !== -1) {
+          const dateDiff = (file?.date) ? (today.setHours(0, 0, 0, 0).valueOf() - file.date.setHours(0, 0, 0, 0).valueOf()) : 0;
+          if (dateDiff >= 7 * 24 * 60 * 60 * 1000) {
+            if (file.name.match(/\.bak/i)) ftp.delete(file.name);
           }
-        });
+          else {
+            resList.push(file?.name);
+          }
+        }
       }
-    });
+    })
     return resList;
   } catch (error) {
     console.error(error);
@@ -57,34 +53,33 @@ const getFileList = async (): Promise<string[]> => {
   return list;
 }
 
-const putFilesOnFtp = async (ftp: Promise<Client | undefined>, existList: string[] | undefined) => {
-  const uploadList = await getFileList();
+const putFilesOnFtp = async (ftp: Client) => {
   try {
-    await Promise.all(uploadList.map(async l => {
-      const ftpuse = async (l: string) => {
-        await ftp.then(
-          async (c) => {
-            if (c) {
-              await c.put(env.BAKPATH + l, l);
-            }
-          }
-        )
-      }
+    const ftpList = GetListFtpFiles(ftp);
+    const uploadList = getFileList();
+    const finalLists = [await ftpList, await uploadList];
 
-      if (!existList?.find(el => el === l)) {
-        await ftpuse(l);
-      }
+    if (finalLists[1]) {
+      await Promise.all(finalLists[1].map(async l => {
+        const ftpuse = async (l: string) => {
+          await ftp.put(env.BAKPATH + l, l);
+        };
+        if (finalLists[0]) {
+          if (!finalLists[0].find(el => el === l)) {
+            await ftpuse(l);
+          };
+        }
+      }));
     }
-    ));
   } catch (e) {
     console.error(e);
   }
 }
 
 async function main() {
-  const ftp = ConnectToFtp(env.HOST, env.FTPUSER, env.PASSWORD, env.PORT);
-  const ftpList = await GetListFtpFiles(ftp);
-  await putFilesOnFtp(ftp, ftpList);
+  const ftp = await ConnectToFtp(env.HOST, env.FTPUSER, env.PASSWORD, env.PORT);
+  if (ftp)
+    await putFilesOnFtp(ftp);
 }
 
 const command = async () => {
