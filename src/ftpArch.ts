@@ -77,15 +77,25 @@ const putFilesOnFtp = async (ftp: Client) => {
 }
 
 async function main() {
+  try {
   const ftp = await ConnectToFtp(env.HOST, env.FTPUSER, env.PASSWORD, env.PORT);
   if (ftp)
     await putFilesOnFtp(ftp);
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 const command = async () => {
-  console.log("start");
-  await main();
-  console.log("end");
+  try {
+    console.log("start");
+    await main();
+    console.log("end");
+  } catch (error) {
+    console.log(error);
+  }
+
+  process.exit();
 
 }
 

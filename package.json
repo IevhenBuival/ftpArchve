@@ -1,17 +1,17 @@
 {
   "name": "ftpArch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "ftpArch.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --build",
     "start": "nodemon src/ftpArch.ts"
   },
   "keywords": [
     "node.js",
     " ftp"
   ],
-  "author": "KaBull",
+  "author": "KaBull aka BuivalIevhen",
   "license": "ISC",
   "dependencies": {
     "commander": "^10.0.0",
